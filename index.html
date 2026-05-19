@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0e1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="FastLog – Simple intermittent fasting timer. No account, no subscription, fully private." />
+  <title>FastLog – Fasting Timer</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1117;
+      --bg2: #161b26;
+      --bg3: #1e2535;
+      --border: #2a3347;
+      --text: #e8ecf4;
+      --text2: #8b95a8;
+      --text3: #4e5a70;
+      --accent: #f0a500;
+      --accent2: #f7c948;
+      --green: #3ecf7a;
+      --red: #ff6b6b;
+      --blue: #5b9cf6;
+      --ring-bg: #1e2535;
+      --ring-size: min(72vw, 300px);
+      --ring-stroke: 14;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    /* ── LAYOUT ─────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    }
+
+    /* ── NAV ─────────────────────────────────── */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 20px 10px;
+    }
+
+    .logo {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo span { color: var(--accent); }
+
+    nav .icon-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 18px;
+      transition: background 0.15s, color 0.15s;
+    }
+    nav .icon-btn:active { background: var(--border); }
+
+    /* ── TABS ─────────────────────────────────── */
+    .tabs {
+      display: flex;
+      padding: 0 20px;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 8px 0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text3);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--bg3);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    /* ── SCREEN ──────────────────────────────── */
+    .screen { display: none; flex: 1; flex-direction: column; padding: 0 20px 24px; }
+    .screen.active { display: flex; }
+
+    /* ── TIMER SCREEN ────────────────────────── */
+    .plan-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .plan-chip {
+      background: var(--bg3);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .plan-chip.active {
+      background: #201b0a;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .plan-chip:active { opacity: 0.7; }
+
+    /* Ring container */
+    .ring-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 8px 0 20px;
+      position: relative;
+    }
+
+    .ring-svg {
+      width: var(--ring-size);
+      height: var(--ring-size);
+      transform: rotate(-90deg);
+      overflow: visible;
+    }
+
+    .ring-track {
+      fill: none;
+      stroke: var(--ring-bg);
+      stroke-width: var(--ring-stroke);
+      stroke-linecap: round;
+    }
+
+    .ring-progress {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: var(--ring-stroke);
+      stroke-linecap: round;
+      stroke-dasharray: 0 1000;
+      transition: stroke-dasharray 1s linear, stroke 0.5s;
+    }
+    .ring-progress.done { stroke: var(--green); }
+
+    .ring-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+    .ring-time {
+      font-family: 'DM Mono', monospace;
+      font-size: clamp(30px, 10vw, 40px);
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .ring-label {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .ring-pct {
+      font-size: 13px;
+      color: var(--accent);
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* Stage badge */
+    .stage-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-top: 2px;
+      min-height: 34px;
+      transition: all 0.4s;
+    }
+    .stage-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text3);
+      flex-shrink: 0;
+      transition: background 0.4s;
+    }
+
+    /* Big action button */
+    .action-btn {
+      width: 100%;
+      padding: 17px;
+      border-radius: 16px;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: -0.2px;
+    }
+    .action-btn:active { opacity: 0.85; transform: scale(0.98); }
+    .action-btn.start {
+      background: var(--accent);
+      color: #0e1117;
+    }
+    .action-btn.stop {
+      background: var(--bg3);
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+
+    .action-sub {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+      margin-top: 10px;
+    }
+
+    /* Streak row */
+    .streak-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-top: 12px;
+    }
+    .streak-icon { font-size: 22px; }
+    .streak-info { flex: 1; }
+    .streak-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .streak-val span { color: var(--accent); }
+    .streak-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+    /* Remind banner */
+    #remind-banner {
+      display: none;
+      background: #1a1400;
+      border: 1px solid #f0a50044;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--accent);
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    /* ── HISTORY SCREEN ──────────────────────── */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text3);
+      margin-bottom: 10px;
+      margin-top: 16px;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    .hist-empty {
+      text-align: center;
+      color: var(--text3);
+      font-size: 14px;
+      margin-top: 60px;
+      line-height: 1.8;
+    }
+
+    .hist-list { display: flex; flex-direction: column; gap: 8px; }
+    .hist-item {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hist-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--bg2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .hist-info { flex: 1; }
+    .hist-date { font-size: 13px; color: var(--text2); font-weight: 500; }
+    .hist-dur { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .hist-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .hist-badge.complete { background: #0d2018; color: var(--green); }
+    .hist-badge.partial { background: #1a1400; color: var(--accent); }
+
+    /* 7-day bar chart */
+    .week-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 80px;
+      margin-bottom: 6px;
+    }
+    .wbar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .wbar {
+      width: 100%;
+      border-radius: 6px 6px 0 0;
+      background: var(--bg3);
+      min-height: 4px;
+      transition: height 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .wbar.filled { background: var(--accent); }
+    .wbar.complete { background: var(--green); }
+    .wbar-day {
+      font-size: 10px;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── SETTINGS SCREEN ─────────────────────── */
+    .settings-section {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-icon {
+      font-size: 20px;
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .setting-info { flex: 1; }
+    .setting-label { font-size: 15px; color: var(--text); font-weight: 500; }
+    .setting-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .setting-control { flex-shrink: 0; }
+
+    .toggle {
+      width: 46px; height: 26px;
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 13px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .toggle.on { background: var(--accent); border-color: var(--accent); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 18px; height: 18px;
+      background: var(--bg);
+      border-radius: 50%;
+      top: 2px; left: 2px;
+      transition: transform 0.2s;
+    }
+    .toggle.on::after { transform: translateX(20px); background: #0e1117; }
+
+    .select-input {
+      background: var(--bg2);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 6px 10px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .remove-ads-btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: 14px;
+      border: 1.5px solid var(--accent);
+      background: #201b0a;
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      margin-bottom: 8px;
+    }
+    .remove-ads-btn:active { opacity: 0.8; }
+    .remove-ads-sub {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+    }
+
+    /* ── AD BANNER ───────────────────────────── */
+    #ad-banner {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text3);
+      min-height: 52px;
+    }
+    #ad-banner.hidden { display: none; }
+    .ad-placeholder {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text3);
+    }
+
+    /* ── MODAL ───────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg2);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-width: 430px;
+      border-top: 1px solid var(--border);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+    .modal h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .modal p {
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .modal-btns { display: flex; flex-direction: column; gap: 8px; }
+    .modal-btn {
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .modal-btn:active { opacity: 0.8; }
+    .modal-btn.primary { background: var(--accent); color: #0e1117; }
+    .modal-btn.ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+
+    /* Custom plan modal */
+    .custom-inputs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .custom-field {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .custom-field label { font-size: 12px; color: var(--text3); }
+    .custom-field input {
+      background: var(--bg3);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 400;
+      text-align: center;
+      padding: 10px;
+      outline: none;
+      width: 100%;
+    }
+    .custom-field input:focus { border-color: var(--accent); }
+
+    /* ── ANIMATIONS ──────────────────────────── */
+    .fade-in { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- NAV -->
+  <nav>
+    <div class="logo">Fast<span>Log</span></div>
+    <button class="icon-btn" id="settings-btn" aria-label="Settings">⚙</button>
+  </nav>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="timer">Timer</button>
+    <button class="tab-btn" data-tab="history">History</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </div>
+
+  <!-- ── TIMER SCREEN ── -->
+  <div class="screen active fade-in" id="tab-timer">
+    <div id="remind-banner">
+      ⏰ Your eating window ended. Ready to start your fast?
+    </div>
+
+    <!-- Plan chips -->
+    <div class="plan-selector" id="plan-chips"></div>
+
+    <!-- Ring -->
+    <div class="ring-wrap">
+      <svg class="ring-svg" id="ring-svg" viewBox="0 0 120 120">
+        <circle class="ring-track" cx="60" cy="60" r="52" />
+        <circle class="ring-progress" id="ring-prog" cx="60" cy="60" r="52" />
+      </svg>
+      <div class="ring-center">
+        <div class="ring-time" id="ring-time">00:00:00</div>
+        <div class="ring-label" id="ring-label">Not fasting</div>
+        <div class="ring-pct" id="ring-pct"></div>
+      </div>
+    </div>
+
+    <!-- Stage -->
+    <div class="stage-badge" id="stage-badge">
+      <div class="dot" id="stage-dot"></div>
+      <span id="stage-text">Start your fast to begin</span>
+    </div>
+
+    <!-- Button -->
+    <button class="action-btn start" id="action-btn" style="margin-top:16px">Start Fast</button>
+    <div class="action-sub" id="action-sub"></div>
+
+    <!-- Streak -->
+    <div class="streak-row">
+      <div class="streak-icon">🔥</div>
+      <div class="streak-info">
+        <div class="streak-val"><span id="streak-num">0</span> day streak</div>
+        <div class="streak-desc" id="streak-desc">Complete a fast to start your streak</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HISTORY SCREEN ── -->
+  <div class="screen" id="tab-history">
+    <div class="section-title">Last 7 Days</div>
+    <div class="week-chart" id="week-chart"></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:16px">
+      <span style="font-size:11px;color:var(--text3)">● Goal reached</span>
+      <span style="font-size:11px;color:var(--text3)">● Partial fast</span>
+    </div>
+
+    <div class="section-title">Past Fasts</div>
+    <div id="hist-list"></div>
+  </div>
+
+  <!-- ── SETTINGS SCREEN ── -->
+  <div class="screen" id="tab-settings">
+    <div class="section-title">Fasting Plan</div>
+    <div class="settings-section">
+      <div class="setting-row">
+        <div class="setting-icon">⏱</div>
+        <div class="setting-info">
+          <div class="setting-label">Current Plan</div>
+          <div class="setting-desc" id="plan-desc-settings">16:8 — Fast 16h, Eat 8h</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Notifications</div>
+    <div class="settings-section">
+      <div class="setting-row">
+        <div class="setting-icon">🔔</div>
+        <div class="setting-info">
+          <div class="setting-label">Open-app reminder</div>
+          <div class="setting-desc">Remind you to start fasting when you open the app</div>
+        </div>
+        <div class="setting-control">
+          <div class="toggle on" id="toggle-reminder"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Units</div>
+    <div class="settings-section">
+      <div class="setting-row">
+        <div class="setting-icon">🌐</div>
+        <div class="setting-info">
+          <div class="setting-label">Time format</div>
+          <div class="setting-desc">How time is displayed in the timer</div>
+        </div>
+        <div class="setting-control">
+          <select class="select-input" id="time-format-sel">
+            <option value="24">24-hour</option>
+            <option value="12">12-hour</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" id="ads-section-title">Remove Ads</div>
+    <div id="ads-section">
+      <button class="remove-ads-btn" id="remove-ads-btn">✦ Remove Ads — €1.49</button>
+      <div class="remove-ads-sub">One-time purchase. No subscription. No account needed.</div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">About</div>
+    <div class="settings-section">
+      <div class="setting-row">
+        <div class="setting-icon">ℹ️</div>
+        <div class="setting-info">
+          <div class="setting-label">FastLog v1.0</div>
+          <div class="setting-desc">by Solstice Apps</div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-icon">🔒</div>
+        <div class="setting-info">
+          <div class="setting-label">Privacy Policy</div>
+          <div class="setting-desc">View our privacy policy</div>
+        </div>
+        <div class="setting-control">
+          <a href="privacy.html" style="font-size:13px;color:var(--blue);text-decoration:none">View →</a>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-icon">📄</div>
+        <div class="setting-info">
+          <div class="setting-label">Terms of Use</div>
+          <div class="setting-desc">View our terms of use</div>
+        </div>
+        <div class="setting-control">
+          <a href="terms.html" style="font-size:13px;color:var(--blue);text-decoration:none">View →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AD BANNER -->
+  <div id="ad-banner">
+    <div class="ad-placeholder">
+      <span>📢</span>
+      <span>Advertisement</span>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-stop">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>End your fast?</h3>
+    <p>Your current fast will be saved to history. You can start a new one anytime.</p>
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="confirm-stop">End Fast & Save</button>
+      <button class="modal-btn ghost" id="cancel-stop">Keep Going</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-custom">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Custom Plan</h3>
+    <p>Set how many hours you want to fast, and how many hours your eating window will be.</p>
+    <div class="custom-inputs">
+      <div class="custom-field">
+        <label>Fast (hours)</label>
+        <input type="number" id="custom-fast" min="1" max="23" value="18" />
+      </div>
+      <div class="custom-field">
+        <label>Eat (hours)</label>
+        <input type="number" id="custom-eat" min="1" max="23" value="6" />
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="confirm-custom">Set Custom Plan</button>
+      <button class="modal-btn ghost" id="cancel-custom">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA & STATE
+// ══════════════════════════════════════════════
+const PLANS = [
+  { id: '16:8',    fast: 16, eat: 8,  label: '16:8' },
+  { id: '18:6',    fast: 18, eat: 6,  label: '18:6' },
+  { id: '20:4',    fast: 20, eat: 4,  label: '20:4' },
+  { id: 'custom',  fast: 18, eat: 6,  label: 'Custom' },
+];
+
+const STAGES = [
+  { hours: 0,  icon: '🌱', label: 'Fed state',       color: '#8b95a8' },
+  { hours: 4,  icon: '⚡', label: 'Digestion complete', color: '#5b9cf6' },
+  { hours: 8,  icon: '🔥', label: 'Fat burning begins', color: '#f0a500' },
+  { hours: 12, icon: '🚀', label: 'Deeper fat burn',  color: '#f7c948' },
+  { hours: 16, icon: '✨', label: 'Ketosis zone',     color: '#3ecf7a' },
+  { hours: 20, icon: '🌟', label: 'Deep ketosis',     color: '#3ecf7a' },
+];
+
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v === null ? def : JSON.parse(v); }
+  catch { return def; }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
+
+let state = {
+  planId:       load('fl_planId', '16:8'),
+  customFast:   load('fl_customFast', 18),
+  customEat:    load('fl_customEat', 6),
+  fastStart:    load('fl_fastStart', null),   // timestamp ms or null
+  adsRemoved:   load('fl_adsRemoved', false),
+  reminder:     load('fl_reminder', true),
+  timeFormat:   load('fl_timeFormat', '24'),
+  history:      load('fl_history', []),        // [{start,end,goal,planId}]
+};
+
+function currentPlan() {
+  const p = PLANS.find(p => p.id === state.planId) || PLANS[0];
+  if (state.planId === 'custom') return { ...p, fast: state.customFast, eat: state.customEat };
+  return p;
+}
+
+function isFasting() { return state.fastStart !== null; }
+
+function elapsedMs() {
+  if (!isFasting()) return 0;
+  return Date.now() - state.fastStart;
+}
+
+function elapsedHours() { return elapsedMs() / 3600000; }
+
+function goalMs() { return currentPlan().fast * 3600000; }
+
+function pct() { return Math.min(1, elapsedMs() / goalMs()); }
+
+// Format ms as HH:MM:SS
+function fmtDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  if (state.timeFormat === '12') {
+    let h = d.getHours(), ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${String(d.getMinutes()).padStart(2,'0')} ${ampm}`;
+  }
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function getStage(hours) {
+  let s = STAGES[0];
+  for (const st of STAGES) { if (hours >= st.hours) s = st; else break; }
+  return s;
+}
+
+// ══════════════════════════════════════════════
+//  STREAK
+// ══════════════════════════════════════════════
+function getStreak() {
+  if (!state.history.length) return 0;
+  const sorted = [...state.history].sort((a,b) => b.end - a.end);
+  let streak = 0;
+  let checkDate = new Date(); checkDate.setHours(0,0,0,0);
+  // allow today or yesterday as the starting point
+  const lastEnd = new Date(sorted[0].end); lastEnd.setHours(0,0,0,0);
+  const diffDays = Math.round((checkDate - lastEnd) / 86400000);
+  if (diffDays > 1) return 0;
+  if (diffDays === 1) checkDate = lastEnd;
+
+  for (const entry of sorted) {
+    if (!entry.goal) continue;
+    const d = new Date(entry.end); d.setHours(0,0,0,0);
+    const diff = Math.round((checkDate - d) / 86400000);
+    if (diff === 0) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
+    else break;
+  }
+  return streak;
+}
+
+// ══════════════════════════════════════════════
+//  REMINDER LOGIC
+// ══════════════════════════════════════════════
+function shouldShowReminder() {
+  if (!state.reminder || isFasting()) return false;
+  if (!state.history.length) return false;
+  const last = state.history[state.history.length - 1];
+  if (!last.end) return false;
+  const eatWindowEnd = last.end + currentPlan().eat * 3600000;
+  return Date.now() > eatWindowEnd;
+}
+
+// ══════════════════════════════════════════════
+//  DOM REFS
+// ══════════════════════════════════════════════
+const ringProg     = document.getElementById('ring-prog');
+const ringTime     = document.getElementById('ring-time');
+const ringLabel    = document.getElementById('ring-label');
+const ringPct      = document.getElementById('ring-pct');
+const stageBadge   = document.getElementById('stage-badge');
+const stageDot     = document.getElementById('stage-dot');
+const stageText    = document.getElementById('stage-text');
+const actionBtn    = document.getElementById('action-btn');
+const actionSub    = document.getElementById('action-sub');
+const streakNum    = document.getElementById('streak-num');
+const streakDesc   = document.getElementById('streak-desc');
+const remindBanner = document.getElementById('remind-banner');
+const adBanner     = document.getElementById('ad-banner');
+const planChips    = document.getElementById('plan-chips');
+const histList     = document.getElementById('hist-list');
+const weekChart    = document.getElementById('week-chart');
+const planDescS    = document.getElementById('plan-desc-settings');
+const toggleRem    = document.getElementById('toggle-reminder');
+const timeFormatS  = document.getElementById('time-format-sel');
+const adsSectionTitle = document.getElementById('ads-section-title');
+const adsSection   = document.getElementById('ads-section');
+
+// Ring geometry
+const R = 52, CIRC = 2 * Math.PI * R;
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function renderTimer() {
+  const p = pct();
+  const dash = p * CIRC;
+  ringProg.style.strokeDasharray = `${dash} ${CIRC}`;
+  ringProg.classList.toggle('done', p >= 1 && isFasting());
+
+  if (isFasting()) {
+    const ms = elapsedMs();
+    ringTime.textContent = fmtDuration(ms);
+    const h = elapsedHours();
+    const stage = getStage(h);
+    const goal = currentPlan().fast;
+    const remaining = Math.max(0, goalMs() - ms);
+
+    if (p >= 1) {
+      ringLabel.textContent = 'Goal complete! 🎉';
+      ringPct.textContent = '';
+    } else {
+      ringLabel.textContent = `${Math.round(p * 100)}% of ${goal}h goal`;
+      ringPct.textContent = fmtDuration(remaining) + ' left';
+    }
+
+    stageDot.style.background = stage.color;
+    stageText.textContent = `${stage.icon} ${stage.label}`;
+
+    actionBtn.textContent = 'End Fast';
+    actionBtn.className = 'action-btn stop';
+    actionSub.textContent = `Started at ${fmtTime(state.fastStart)}`;
+  } else {
+    ringProg.style.strokeDasharray = `0 ${CIRC}`;
+    ringTime.textContent = '00:00:00';
+    ringLabel.textContent = 'Not fasting';
+    ringPct.textContent = '';
+    stageDot.style.background = 'var(--text3)';
+    stageText.textContent = 'Start your fast to begin';
+    actionBtn.textContent = 'Start Fast';
+    actionBtn.className = 'action-btn start';
+    actionSub.textContent = '';
+  }
+
+  // Streak
+  const streak = getStreak();
+  streakNum.textContent = streak;
+  if (streak === 0) streakDesc.textContent = 'Complete a fast to start your streak';
+  else if (streak === 1) streakDesc.textContent = '1 day — keep it going!';
+  else streakDesc.textContent = `${streak} days in a row — great work!`;
+
+  // Reminder
+  remindBanner.style.display = shouldShowReminder() ? 'block' : 'none';
+
+  // Ad banner
+  adBanner.classList.toggle('hidden', state.adsRemoved);
+}
+
+function renderPlanChips() {
+  planChips.innerHTML = '';
+  for (const p of PLANS) {
+    const btn = document.createElement('button');
+    btn.className = 'plan-chip' + (state.planId === p.id ? ' active' : '');
+    btn.textContent = p.label;
+    btn.onclick = () => {
+      if (p.id === 'custom') {
+        document.getElementById('modal-custom').classList.add('open');
+      } else {
+        state.planId = p.id;
+        save('fl_planId', state.planId);
+        renderPlanChips();
+        renderTimer();
+        renderSettings();
+      }
+    };
+    planChips.appendChild(btn);
+  }
+}
+
+function renderHistory() {
+  // Week chart
+  const DAY_NAMES = ['S','M','T','W','T','F','S'];
+  weekChart.innerHTML = '';
+  const plan = currentPlan();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - i);
+    const dEnd = new Date(d); dEnd.setDate(dEnd.getDate() + 1);
+    const entries = state.history.filter(h => h.end >= d.getTime() && h.end < dEnd.getTime());
+    const bestDur = entries.reduce((mx, e) => Math.max(mx, e.end - e.start), 0);
+    const maxH = plan.fast * 3600000;
+    const height = bestDur ? Math.max(8, Math.round((Math.min(bestDur, maxH) / maxH) * 68)) : 4;
+    const isComplete = bestDur >= maxH;
+    const hasEntry = bestDur > 0;
+
+    const col = document.createElement('div');
+    col.className = 'wbar-col';
+    col.innerHTML = `
+      <div class="wbar ${isComplete ? 'complete' : hasEntry ? 'filled' : ''}" style="height:${height}px"></div>
+      <div class="wbar-day">${DAY_NAMES[d.getDay()]}</div>
+    `;
+    weekChart.appendChild(col);
+  }
+
+  // List
+  if (!state.history.length) {
+    histList.innerHTML = '<div class="hist-empty">No fasts yet.<br>Start your first fast on the Timer tab.</div>';
+    return;
+  }
+  histList.innerHTML = '';
+  const sorted = [...state.history].sort((a,b) => b.end - a.end).slice(0, 30);
+  for (const entry of sorted) {
+    const dur = entry.end - entry.start;
+    const isGoal = dur >= (entry.goalHours || currentPlan().fast) * 3600000;
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    item.innerHTML = `
+      <div class="hist-icon">${isGoal ? '✅' : '⏱'}</div>
+      <div class="hist-info">
+        <div class="hist-date">${fmtDate(entry.end)}</div>
+        <div class="hist-dur">${fmtDuration(dur)} · ${fmtTime(entry.start)} – ${fmtTime(entry.end)}</div>
+      </div>
+      <div class="hist-badge ${isGoal ? 'complete' : 'partial'}">${isGoal ? 'Goal ✓' : 'Partial'}</div>
+    `;
+    histList.appendChild(item);
+  }
+}
+
+function renderSettings() {
+  const plan = currentPlan();
+  const planNames = { '16:8': '16:8 — Fast 16h, Eat 8h', '18:6': '18:6 — Fast 18h, Eat 6h', '20:4': '20:4 — Fast 20h, Eat 4h', 'custom': `Custom — Fast ${plan.fast}h, Eat ${plan.eat}h` };
+  planDescS.textContent = planNames[state.planId] || '16:8 — Fast 16h, Eat 8h';
+  toggleRem.className = 'toggle' + (state.reminder ? ' on' : '');
+  timeFormatS.value = state.timeFormat;
+  adsSectionTitle.style.display = state.adsRemoved ? 'none' : '';
+  adsSection.style.display = state.adsRemoved ? 'none' : '';
+}
+
+// ══════════════════════════════════════════════
+//  EVENTS
+// ══════════════════════════════════════════════
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    const screen = document.getElementById('tab-' + btn.dataset.tab);
+    screen.classList.add('active');
+    if (btn.dataset.tab === 'history') renderHistory();
+    if (btn.dataset.tab === 'settings') renderSettings();
+  });
+});
+
+// Settings btn → jump to settings tab
+document.getElementById('settings-btn').addEventListener('click', () => {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === 'settings');
+  });
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.toggle('active', s.id === 'tab-settings');
+  });
+  renderSettings();
+});
+
+// Action btn
+actionBtn.addEventListener('click', () => {
+  if (isFasting()) {
+    document.getElementById('modal-stop').classList.add('open');
+  } else {
+    state.fastStart = Date.now();
+    save('fl_fastStart', state.fastStart);
+    renderTimer();
+  }
+});
+
+// Stop modal
+document.getElementById('confirm-stop').addEventListener('click', () => {
+  if (isFasting()) {
+    const entry = {
+      start: state.fastStart,
+      end: Date.now(),
+      goalHours: currentPlan().fast,
+      planId: state.planId,
+      goal: (Date.now() - state.fastStart) >= goalMs(),
+    };
+    state.history.push(entry);
+    save('fl_history', state.history);
+    state.fastStart = null;
+    save('fl_fastStart', null);
+  }
+  document.getElementById('modal-stop').classList.remove('open');
+  renderTimer();
+});
+document.getElementById('cancel-stop').addEventListener('click', () => {
+  document.getElementById('modal-stop').classList.remove('open');
+});
+
+// Custom plan modal
+document.getElementById('confirm-custom').addEventListener('click', () => {
+  const f = parseInt(document.getElementById('custom-fast').value) || 18;
+  const e = parseInt(document.getElementById('custom-eat').value) || 6;
+  state.customFast = Math.min(23, Math.max(1, f));
+  state.customEat  = Math.min(23, Math.max(1, e));
+  state.planId = 'custom';
+  save('fl_planId', 'custom');
+  save('fl_customFast', state.customFast);
+  save('fl_customEat', state.customEat);
+  document.getElementById('modal-custom').classList.remove('open');
+  renderPlanChips();
+  renderTimer();
+  renderSettings();
+});
+document.getElementById('cancel-custom').addEventListener('click', () => {
+  document.getElementById('modal-custom').classList.remove('open');
+});
+
+// Settings toggles
+toggleRem.addEventListener('click', () => {
+  state.reminder = !state.reminder;
+  save('fl_reminder', state.reminder);
+  renderSettings();
+});
+
+timeFormatS.addEventListener('change', () => {
+  state.timeFormat = timeFormatS.value;
+  save('fl_timeFormat', state.timeFormat);
+  renderTimer();
+});
+
+document.getElementById('remove-ads-btn').addEventListener('click', () => {
+  // Placeholder — real Play Billing integration after Play Store approval
+  alert('This will connect to Google Play Billing after app store approval.\n\nIn the released app, tapping here opens the €1.49 one-time purchase flow.');
+});
+
+// ══════════════════════════════════════════════
+//  TICK LOOP
+// ══════════════════════════════════════════════
+function tick() { if (isFasting()) renderTimer(); }
+setInterval(tick, 1000);
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+renderPlanChips();
+renderTimer();
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
