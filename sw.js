@@ -1,4 +1,4 @@
-const CACHE = 'fastlog-v1';
+const CACHE = 'fastlog-v2';
 const ASSETS = [
   '/',
   '/index.html',
